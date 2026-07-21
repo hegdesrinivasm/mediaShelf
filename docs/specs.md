@@ -32,6 +32,16 @@ A personal replacement for a Notion setup (separate databases per content type �
 
 Client (SvelteKit) → Supabase (Postgres DB, Storage, Edge Functions) → external metadata/LLM APIs, called only from Edge Functions.
 
+## Deployment
+
+| Layer | Host | Notes |
+|---|---|---|
+| Frontend (SvelteKit) | **Vercel** | Auto-deploys from git push, free tier, first-class SvelteKit support |
+| Database + Storage | **Supabase** (hosted) | Free tier — 500MB DB, 1GB storage, ample for single-user |
+| Edge Functions | **Supabase** (hosted) | Free tier — 500K invocations/month, cold starts ~300ms–1s |
+
+Scaling is not a real concern for a single-user personal tool. The free tiers on both Vercel and Supabase are more than sufficient. If the app ever grows beyond personal use, Supabase Pro ($25/mo) eliminates edge function cold starts and increases limits significantly.
+
 ## Database schema
 
 ```sql
