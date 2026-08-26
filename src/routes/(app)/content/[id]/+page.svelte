@@ -21,8 +21,23 @@
 	let platform_url = $state(item.platform_url ?? '');
 	let saving = $state(false);
 	let summaryLoading = $state(false);
+	let recLoading = $state(false);
+	let recs: Array<{ title: string; explanation: string; score: number; metadata?: any }> = $state([]);
 	let msg = $state<string | null>(null);
 	let err = $state<string | null>(null);
+
+	async function loadRecommendations() {
+		recLoading = true;
+		try {
+			const { data, error: fnErr } = await supabase.functions.invoke('recommend', { body: { content_id: item.id } });
+			if (fnErr) throw new Error(fnErr.message);
+			recs = (data as any)?.recommendations ?? [];
+		} catch (e) {
+			err = e instanceof Error ? e.message : String(e);
+		} finally {
+			recLoading = false;
+		}
+	}
 
 	async function generateSummary() {
 		summaryLoading = true;
@@ -157,5 +172,20 @@
 
 		{#if msg}<p class="text-green-600 text-sm" data-testid="msg">{msg}</p>{/if}
 		{#if err}<p class="text-red-600 text-sm" data-testid="error">{err}</p>{/if}
+	</div>
+
+	<div class="border-t pt-4 space-y-2" data-testid="recommendations">
+		<h2 class="font-semibold">Recommendations</h2>
+		<button onclick={loadRecommendations} disabled={recLoading} class="px-3 py-1 bg-indigo-600 text-white rounded text-sm disabled:opacity-50" data-testid="rec-btn">
+			{recLoading ? 'Loading…' : 'Get recommendations'}
+		</button>
+		{#if recs.length}
+			<ul class="space-y-2">
+				{#each recs as r}
+					<li class="border rounded p-2 text-sm"><strong>{r.title}</strong> ({r.score}) — {r.explanation}</li>
+				{/each}
+			</ul>
+		{/if}
+		<a href="/recommendations" class="text-xs text-blue-600 hover:underline">View all recommendations →</a>
 	</div>
 </div>
