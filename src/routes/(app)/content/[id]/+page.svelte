@@ -20,8 +20,27 @@
 	let platform = $state(item.platform ?? '');
 	let platform_url = $state(item.platform_url ?? '');
 	let saving = $state(false);
+	let summaryLoading = $state(false);
 	let msg = $state<string | null>(null);
 	let err = $state<string | null>(null);
+
+	async function generateSummary() {
+		summaryLoading = true;
+		err = null;
+		try {
+			const { data: res, error: fnErr } = await supabase.functions.invoke('generate-summary', {
+				body: { title: item.title, type: item.type }
+			});
+			if (fnErr) throw new Error(fnErr.message);
+			summary = (res as any)?.summary ?? '';
+			summary_source = 'ai';
+			msg = 'Summary generated — save to persist';
+		} catch (e) {
+			err = e instanceof Error ? e.message : String(e);
+		} finally {
+			summaryLoading = false;
+		}
+	}
 
 	async function save() {
 		saving = true;
@@ -92,10 +111,15 @@
 
 		<label class="block text-sm">Summary
 			<textarea bind:value={summary} rows="3" class="w-full border rounded px-3 py-2 mt-1" data-testid="summary-input"></textarea>
-			<select bind:value={summary_source} class="mt-1 border rounded px-2 py-1 text-xs" data-testid="summary-source">
-				<option value="user">user</option>
-				<option value="ai">ai</option>
-			</select>
+			<div class="mt-1 flex gap-2 items-center">
+				<select bind:value={summary_source} class="border rounded px-2 py-1 text-xs" data-testid="summary-source">
+					<option value="user">user</option>
+					<option value="ai">ai</option>
+				</select>
+				<button onclick={generateSummary} disabled={summaryLoading || saving} class="px-3 py-1 text-xs bg-purple-600 text-white rounded disabled:opacity-50" data-testid="generate-summary-btn">
+					{summaryLoading ? 'Generating…' : 'Generate with AI'}
+				</button>
+			</div>
 		</label>
 
 		<label class="block text-sm">Liked

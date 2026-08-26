@@ -14,6 +14,9 @@
 	let rating: number | null = $state(null);
 	let platform = $state('');
 	let tags = $state('');
+	let summary = $state('');
+	let summary_source: 'user' | 'ai' = $state('user');
+	let summaryLoading = $state(false);
 
 	async function fetchMetadata() {
 		if (!title.trim()) {
@@ -57,6 +60,28 @@
 		}
 	}
 
+	async function generateSummary() {
+		if (!title.trim()) {
+			error = 'Title is required for summary';
+			return;
+		}
+		summaryLoading = true;
+		error = null;
+		try {
+			const { data, error: fnError } = await supabase.functions.invoke('generate-summary', {
+				body: { title: title.trim(), type }
+			});
+			if (fnError) throw new Error(fnError.message);
+			summary = (data as any)?.summary ?? '';
+			summary_source = 'ai';
+			success = 'Summary generated';
+		} catch (e) {
+			error = e instanceof Error ? e.message : String(e);
+		} finally {
+			summaryLoading = false;
+		}
+	}
+
 	async function save() {
 		if (!title.trim()) {
 			error = 'Title is required';
@@ -78,6 +103,8 @@
 						.split(',')
 						.map((t) => t.trim())
 						.filter(Boolean),
+					summary: summary || null,
+					summary_source: summary ? summary_source : null,
 					details: (fetchedDetails as any) ?? {}
 				})
 				.select()
@@ -214,6 +241,20 @@
 		<label class="block">
 			<span class="text-sm font-medium">Tags (comma-separated)</span>
 			<input bind:value={tags} placeholder="sci-fi, kdrama" class="mt-1 w-full border rounded px-3 py-2" data-testid="tags-input" />
+		</label>
+
+		<label class="block">
+			<span class="text-sm font-medium">Summary</span>
+			<textarea bind:value={summary} rows="3" placeholder="Write your own or generate with AI" class="mt-1 w-full border rounded px-3 py-2" data-testid="summary-input"></textarea>
+			<div class="mt-2 flex gap-2 items-center">
+				<select bind:value={summary_source} class="border rounded px-2 py-1 text-sm" data-testid="summary-source">
+					<option value="user">user</option>
+					<option value="ai">ai</option>
+				</select>
+				<button onclick={generateSummary} disabled={summaryLoading || loading} class="px-3 py-1.5 bg-purple-600 text-white rounded text-sm disabled:opacity-50" data-testid="generate-summary-btn">
+					{summaryLoading ? 'Generating…' : 'Generate with AI'}
+				</button>
+			</div>
 		</label>
 	</div>
 
