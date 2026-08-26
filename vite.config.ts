@@ -18,5 +18,9 @@ export default defineConfig({
 			// See https://svelte.dev/docs/kit/adapters for more information about adapters.
 			adapter: adapter()
 		})
-	]
+	],
+	// @ts-expect-error - vitest config not in vite types but handled at runtime
+	test: {
+		include: ['src/**/*.{test,spec}.{js,ts}']
+	}
 });
